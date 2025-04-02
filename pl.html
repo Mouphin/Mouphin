@@ -1,0 +1,2197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>植物园地</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .page {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 70px;
+            transition: transform 0.3s ease;
+        }
+        
+        .page.active {
+            display: block;
+            transform: translateY(0);
+        }
+        
+        .page.inactive {
+            display: none;
+            transform: translateY(100%);
+        }
+        
+        /* 状态栏 */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .status-bar .time {
+            font-weight: bold;
+        }
+        
+        /* 用户信息 */
+        .user-info {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            margin-bottom: 10px;
+        }
+        
+        .user-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: #eee;
+            overflow: hidden;
+            position: relative;
+            margin-right: 15px;
+        }
+        
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .user-greeting {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .user-message {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .user-stats {
+            display: flex;
+            align-items: center;
+        }
+        
+        .money {
+            background-color: #fff;
+            border-radius: 20px;
+            padding: 5px 15px;
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+        
+        .money-icon {
+            color: #ffc107;
+            margin-right: 5px;
+        }
+        
+        .level {
+            display: flex;
+            align-items: center;
+        }
+        
+        .exp-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #eee;
+            border-radius: 3px;
+            margin: 10px 0;
+        }
+        
+        .exp-fill {
+            height: 100%;
+            background-color: #7ac142;
+            border-radius: 3px;
+            width: 60%;
+        }
+        
+        .exp-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        /* 日历 */
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin: 20px 0;
+        }
+        
+        .calendar-day {
+            text-align: center;
+            padding: 5px 0;
+            font-size: 14px;
+        }
+        
+        .calendar-date {
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .calendar-date:hover {
+            background-color: rgba(122, 193, 66, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .calendar-date.active {
+            background-color: #7ac142;
+            color: white;
+        }
+        
+        .calendar-date.today {
+            position: relative;
+        }
+        
+        .calendar-date.today::after {
+            content: "";
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background-color: #ff9800;
+        }
+        
+        .calendar-date.has-record::after {
+            content: "";
+            position: absolute;
+            bottom: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #7ac142;
+        }
+        
+        /* 卡片 */
+        .cards {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .day-card {
+            flex: 1;
+            background-color: #7ac142;
+            border-radius: 15px;
+            padding: 15px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .day-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255, 255, 255, 0.2) 10px, rgba(255, 255, 255, 0.2) 20px);
+        }
+        
+        .day-label {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .day-time {
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .day-week {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .day-location {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .weather-icon {
+            width: 40px;
+            height: 40px;
+            margin: 10px 0;
+        }
+        
+        .tips-card {
+            flex: 1;
+            background-color: #fff9c4;
+            border-radius: 15px;
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tips-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0, 0, 0, 0.1) 10px, rgba(0, 0, 0, 0.1) 20px);
+        }
+        
+        .tips-label {
+            font-size: 14px;
+            color: #ff6f00;
+            margin-bottom: 10px;
+        }
+        
+        .tips-content {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .dots {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #ccc;
+            margin: 0 3px;
+        }
+        
+        .dot.active {
+            background-color: #7ac142;
+        }
+        
+        /* 花圃 */
+        .garden {
+            background-color: #e8f5e9;
+            border-radius: 15px;
+            padding: 15px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .garden::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0, 0, 0, 0.1) 10px, rgba(0, 0, 0, 0.1) 20px);
+        }
+        
+        .garden-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .garden-title {
+            background-color: rgba(0, 0, 0, 0.1);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .garden-weather {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .garden-stats {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 15px;
+        }
+        
+        .stat-item {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 10px;
+            opacity: 0.7;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .stat-slider {
+            width: 100%;
+            height: 4px;
+            background-color: #eee;
+            border-radius: 2px;
+            margin-top: 10px;
+            position: relative;
+        }
+        
+        .stat-slider-fill {
+            height: 100%;
+            background-color: #ff9800;
+            border-radius: 2px;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        
+        .garden-image {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #ddd;
+        }
+        
+        .garden-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* 社区页面 */
+        .community-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .community-tabs {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .community-tab {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            background-color: #e8f5e9;
+            transition: all 0.3s ease;
+        }
+        
+        .community-tab:hover {
+            background-color: rgba(122, 193, 66, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .community-tab.active {
+            background-color: #7ac142;
+            color: white;
+        }
+        
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            border-radius: 20px;
+            padding: 8px 15px;
+            margin-bottom: 15px;
+        }
+        
+        .search-bar input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 14px;
+        }
+        
+        .search-icon {
+            margin-right: 10px;
+            color: #7ac142;
+        }
+        
+        .voice-icon {
+            color: #999;
+        }
+        
+        .post {
+            margin-bottom: 20px;
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .post-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #eee;
+            overflow: hidden;
+            margin-right: 10px;
+        }
+        
+        .post-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .post-info {
+            flex: 1;
+        }
+        
+        .post-name {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .post-location {
+            font-size: 12px;
+            color: #999;
+            margin-top: 3px;
+        }
+        
+        .post-content {
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .post-images {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .post-image {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #eee;
+        }
+        
+        .post-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .post-tags {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .post-tag {
+            font-size: 12px;
+            color: #7ac142;
+            background-color: #e8f5e9;
+            padding: 3px 8px;
+            border-radius: 10px;
+        }
+        
+        .post-actions {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .post-action {
+            display: flex;
+            align-items: center;
+        }
+        
+        .post-action-icon {
+            margin-right: 5px;
+        }
+        
+        .comment {
+            background-color: #f5f5f5;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        /* 植物园地页面 */
+        .plant-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .plant-logo {
+            display: flex;
+            align-items: center;
+        }
+        
+        .plant-logo img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            margin-right: 10px;
+        }
+        
+        .plant-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .plant-money {
+            display: flex;
+            align-items: center;
+        }
+        
+        .plant-money-icon {
+            color: #ffc107;
+            margin-right: 5px;
+        }
+        
+        .plant-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .plant-tab {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            background-color: #e8f5e9;
+            transition: all 0.3s ease;
+        }
+        
+        .plant-tab:hover {
+            background-color: rgba(122, 193, 66, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .plant-tab.active {
+            background-color: #7ac142;
+            color: white;
+        }
+        
+        .plant-categories {
+            margin-bottom: 15px;
+        }
+        
+        .category {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .category-label {
+            font-size: 16px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .category-icon {
+            margin-left: auto;
+        }
+        
+        .plant-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .plant-card {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .plant-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .plant-image {
+            width: 100%;
+            height: 120px;
+            overflow: hidden;
+        }
+        
+        .plant-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .plant-info {
+            padding: 10px;
+        }
+        
+        .plant-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .plant-price {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #ffc107;
+        }
+        
+        .plant-price-icon {
+            margin-right: 5px;
+        }
+        
+        /* 聊天页面 */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .chat-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #7ac142;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+        
+        .message.received {
+            justify-content: flex-start;
+        }
+        
+        .message.sent {
+            justify-content: flex-end;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .message.received .message-bubble {
+            background-color: #e3f2fd;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .message.sent .message-bubble {
+            background-color: #7ac142;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .voice-message {
+            display: flex;
+            align-items: center;
+            background-color: #7ac142;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .voice-icon {
+            margin-right: 10px;
+        }
+        
+        .voice-bar {
+            display: flex;
+            align-items: center;
+        }
+        
+        .voice-bar-item {
+            width: 8px;
+            height: 8px;
+            background-color: white;
+            margin: 0 2px;
+            border-radius: 2px;
+        }
+        
+        .voice-duration {
+            margin-left: 10px;
+        }
+        
+        .chat-input {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: white;
+            border-radius: 20px;
+        }
+        
+        .chat-input-icon {
+            margin-right: 10px;
+            color: #7ac142;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 14px;
+        }
+        
+        .chat-input-actions {
+            display: flex;
+            margin-left: 10px;
+        }
+        
+        .chat-input-action {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-input-action:hover {
+            background-color: #e0e0e0;
+            transform: scale(1.1);
+        }
+        
+        /* 浇水打卡页面 */
+        .back-button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .back-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .back-button span {
+            font-size: 18px;
+        }
+        
+        .page-title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 15px 0;
+            color: #333;
+        }
+        
+        .calendar-container {
+            background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #666;
+        }
+        
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+        
+        .calendar-day {
+            text-align: center;
+            padding: 8px 0;
+            border-radius: 50%;
+            font-size: 14px;
+        }
+        
+        .calendar-day.active {
+            background-color: #7ac142;
+            color: white;
+        }
+        
+        .calendar-day.today {
+            position: relative;
+        }
+        
+        .calendar-day.today::after {
+            content: "";
+            position: absolute;
+            bottom: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #ff9800;
+        }
+        
+        .calendar-day.has-record::after {
+            content: "";
+            position: absolute;
+            bottom: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #7ac142;
+        }
+        
+        .check-in-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 30px 0;
+        }
+        
+        .progress-circle {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            margin-right: 20px;
+        }
+        
+        .progress-circle svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .progress-circle circle {
+            fill: none;
+            stroke-width: 10;
+            stroke-linecap: round;
+        }
+        
+        .progress-bg {
+            stroke: #e0f7fa;
+        }
+        
+        .progress-fill {
+            stroke: #7ac142;
+            transform: rotate(-90deg);
+            transform-origin: center;
+        }
+        
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        
+        .progress-label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .progress-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .exp-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .exp-label {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .exp-value {
+            font-size: 14px;
+            color: #7ac142;
+            margin-bottom: 10px;
+        }
+        
+        .daily-reward {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #ffc107;
+        }
+        
+        .daily-reward-icon {
+            margin-right: 5px;
+        }
+        
+        .video-section {
+            background-color: #f5f5f5;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .video-title {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #666;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 180px;
+            background-color: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .video-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .play-icon {
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .shoot-button {
+            background-color: #7ac142;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .shoot-button:hover {
+            background-color: #68a738;
+            transform: scale(1.05);
+        }
+        
+        .shoot-button-icon {
+            margin-right: 5px;
+        }
+        
+        /* 种植日记页面 */
+        .diary-container {
+            background-color: #fff3e0;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .diary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .diary-title {
+            background-color: rgba(0, 0, 0, 0.1);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .diary-content {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .diary-date {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .diary-text {
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .diary-image {
+            width: 100%;
+            height: 150px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #ddd;
+            margin-bottom: 15px;
+        }
+        
+        .diary-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .diary-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+        
+        .diary-nav-button {
+            background-color: #7ac142;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .diary-nav-button:hover {
+            background-color: #68a738;
+        }
+        
+        .diary-nav-button.left {
+            margin-right: 10px;
+        }
+        
+        .diary-nav-button.right {
+            margin-left: 10px;
+        }
+        
+        .diary-day {
+            background-color: #e0e0e0;
+            color: #333;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .diary-day:hover {
+            background-color: #d0d0d0;
+        }
+        
+        /* 花圃详情页面 */
+        .garden-detail {
+            background-color: #e8f5e9;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .garden-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .garden-detail-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .garden-detail-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #ddd;
+        }
+        
+        .garden-detail-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .plant-info-list {
+            margin-bottom: 20px;
+        }
+        
+        .plant-info-item {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        
+        .plant-info-label {
+            width: 80px;
+            font-weight: bold;
+        }
+        
+        .plant-info-value {
+            flex: 1;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+        
+        .garden-detail-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .garden-detail-button {
+            background-color: #7ac142;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .garden-detail-button:hover {
+            background-color: #68a738;
+        }
+        
+        .garden-detail-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .garden-detail-nav-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .garden-detail-nav-button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        /* 种子袋页面 */
+        .seed-bag {
+            background-color: #f5f7fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .seed-bag-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .seed-bag-title {
+            background-color: #7ac142;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .seed-bag-logo {
+            width: 50px;
+            height: 50px;
+            background-color: #795548;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .seed-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        .seed-card {
+            background-color: #f5f5f5;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .seed-icon {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 10px;
+            background-color: #ddd;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .seed-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .seed-price {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #ffc107;
+        }
+        
+        .seed-price-icon {
+            margin-right: 5px;
+        }
+        
+        .plant-seed-button {
+            background-color: #ffc107;
+            color: #333;
+            border: none;
+            border-radius: 15px;
+            padding: 5px 15px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .plant-seed-button:hover {
+            background-color: #ffb300;
+        }
+        
+        /* 底部导航栏 */
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background-color: #2e7d32;
+            border-radius: 30px;
+            padding: 15px;
+            position: fixed;
+            bottom: 0;
+            left: 20px;
+            right: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .nav-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .nav-label {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主页 -->
+    <div id="home-page" class="page active">
+        <div class="status-bar">
+            <div class="time">9:41</div>
+        </div>
+        
+        <div class="user-info">
+            <div class="user-avatar">
+                <img src="prt.png" alt="用户头像">
+            </div>
+            <div class="user-greeting">
+                <div class="user-name">你好，小园丁</div>
+                <div class="user-message">开始今天的种植之旅吧</div>
+                <div class="exp-label">
+                    <span>exp</span>
+                    <span>lv.3</span>
+                </div>
+                <div class="exp-bar">
+                    <div class="exp-fill"></div>
+                </div>
+            </div>
+            <div class="user-stats">
+                <div class="money">
+                    <span class="money-icon">$</span>
+                    <span>1530</span>
+                </div>
+                <div class="level">
+                    <span>🏆</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="calendar">
+            <div class="calendar-day">一</div>
+            <div class="calendar-day">二</div>
+            <div class="calendar-day">三</div>
+            <div class="calendar-day">四</div>
+            <div class="calendar-day">五</div>
+            <div class="calendar-day">六</div>
+            <div class="calendar-day">日</div>
+            <div class="calendar-date">8</div>
+            <div class="calendar-date">9</div>
+            <div class="calendar-date">10</div>
+            <div class="calendar-date">11</div>
+            <div class="calendar-date active">12</div>
+            <div class="calendar-date today">13</div>
+            <div class="calendar-date">14</div>
+        </div>
+        
+        <div class="cards">
+            <div class="day-card">
+                <div class="day-label">DAY 21</div>
+                <div class="day-time">09:41 AM</div>
+                <div class="day-week">星期二</div>
+                <div class="day-location">北京 海淀</div>
+                <div class="weather-icon">🌧️</div>
+            </div>
+            <div class="tips-card">
+                <div class="tips-label">Tips: 你知道吗？</div>
+                <div class="tips-content">番茄成熟的时候，温度最好在20~25度之间。</div>
+                <div class="dots">
+                    <div class="dot"></div>
+                    <div class="dot active"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="garden">
+            <div class="garden-header">
+                <div class="garden-title">花圃</div>
+                <div class="garden-weather">💧</div>
+            </div>
+            <div class="garden-stats">
+                <div class="stat-column">
+                    <div class="stat-item">
+                        <div class="stat-icon">🌡️</div>
+                        <div class="stat-label">温度</div>
+                        <div class="stat-value">15.0°C</div>
+                        <div class="stat-slider">
+                            <div class="stat-slider-fill" style="width: 30%;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #999;">
+                            <span>-10</span>
+                            <span>40</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">💧</div>
+                        <div class="stat-label">湿度</div>
+                        <div class="stat-value">79%RH</div>
+                        <div class="stat-slider">
+                            <div class="stat-slider-fill" style="width: 79%;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #999;">
+                            <span>0</span>
+                            <span>100</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">☀️</div>
+                        <div class="stat-label">光照度</div>
+                        <div class="stat-value">843.3Lux</div>
+                        <div class="stat-slider">
+                            <div class="stat-slider-fill" style="width: 50%;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #999;">
+                            <span>0</span>
+                            <span>100</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="garden-image">
+                    <img src="截屏2025-04-01 20.06.58.png" alt="花园图片">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 社区页面 -->
+    <div id="community-page" class="page inactive">
+        <div class="status-bar">
+            <div class="time">9:41</div>
+        </div>
+        
+        <div class="community-header">
+            <div class="community-tabs">
+                <div class="community-tab active">展示天地</div>
+                <div class="community-tab">问题中心</div>
+            </div>
+        </div>
+        
+        <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" placeholder="搜索">
+            <span class="voice-icon">🎤</span>
+        </div>
+        
+        <div class="post">
+            <div class="post-header">
+                <div class="post-avatar">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZSIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iODAiIGZpbGw9IiM3YWMxNDIiLz48L3N2Zz4=" alt="用户头像">
+                </div>
+                <div class="post-info">
+                    <div class="post-name">TE</div>
+                    <div class="post-location">📍 北京市</div>
+                </div>
+                <div class="more-icon">...</div>
+            </div>
+            <div class="post-content">辛勤种植，享植物之美</div>
+            <div class="post-images">
+                <div class="post-image">
+                    <img src="xq1.png" alt="植物图片">
+                </div>
+                <div class="post-image">
+                    <img src="xq2.png" alt="植物图片">
+                </div>
+                <div class="post-image">
+                    <img src="xq3.png" alt="植物图片">
+                </div>
+            </div>
+            <div class="post-tags">
+                <div class="post-tag">盆栽的艺术</div>
+                <div class="post-tag">多肉</div>
+            </div>
+            <div class="post-actions">
+                <div class="post-action">
+                    <span class="post-action-icon">👍</span>
+                    <span>45人点赞</span>
+                </div>
+                <div class="post-action">
+                    <span class="post-action-icon">💬</span>
+                    <span>3</span>
+                </div>
+                <div class="post-action">
+                    <span class="post-action-icon">🔄</span>
+                    <span>0</span>
+                </div>
+            </div>
+            <div class="comment">
+                既然来了，那就一起来参与讨论吧~
+            </div>
+        </div>
+        
+        <div class="post">
+            <div class="post-header">
+                <div class="post-avatar">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZSIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iODAiIGZpbGw9IiM4MDk3NjAiLz48L3N2Zz4=" alt="用户头像">
+                </div>
+                <div class="post-info">
+                    <div class="post-name">STU</div>
+                    <div class="post-location">📍 北京市</div>
+                </div>
+                <div class="more-icon">...</div>
+            </div>
+            <div class="post-content">长势喜人！</div>
+            <div class="post-image">
+                <img src="zsxr.png" alt="植物图片">
+            </div>
+        </div>
+    </div>
+    
+    <!-- 植物园地页面 -->
+    <div id="plant-page" class="page inactive">
+        <div class="status-bar">
+            <div class="time">9:41</div>
+        </div>
+        
+        <div class="plant-header">
+            <div class="plant-logo">
+                <img src="" alt="种子袋">
+            </div>
+            <div class="plant-title">植物园地</div>
+            <div class="plant-money">
+                <span class="plant-money-icon">$</span>
+                <span>1530</span>
+            </div>
+        </div>
+        
+        <div class="plant-tabs">
+            <div class="plant-tab active">全部</div>
+            <div class="plant-tab">室内</div>
+            <div class="plant-tab">室外</div>
+        </div>
+        
+        <div class="plant-categories">
+            <div class="category">
+                <div class="category-label">新手级</div>
+                <div class="category-icon">▼</div>
+            </div>
+            <div class="plant-grid">
+                <div class="plant-card">
+                    <div class="plant-image">
+                        <img src="sc.png" alt="生菜">
+                    </div>
+                    <div class="plant-info">
+                        <div class="plant-name">生菜</div>
+                        <div class="plant-price">
+                            <span class="plant-price-icon">$</span>
+                            <span>20</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="plant-card">
+                    <div class="plant-image">
+                        <img src="dyc.png" alt="豆芽">
+                    </div>
+                    <div class="plant-info">
+                        <div class="plant-name">豆芽</div>
+                        <div class="plant-price">
+                            <span class="plant-price-icon">$</span>
+                            <span>15</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="category">
+                <div class="category-label">进阶级</div>
+                <div class="category-icon">▼</div>
+            </div>
+            <div class="plant-grid">
+                <div class="plant-card">
+                    <div class="plant-image">
+                        <img src="jc.png" alt="韭菜">
+                    </div>
+                    <div class="plant-info">
+                        <div class="plant-name">韭菜</div>
+                        <div class="plant-price">
+                            <span class="plant-price-icon">$</span>
+                            <span>25</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="plant-card">
+                    <div class="plant-image">
+                        <img src="dr.png" alt="多肉">
+                    </div>
+                    <div class="plant-info">
+                        <div class="plant-name">多肉</div>
+                        <div class="plant-price">
+                            <span class="plant-price-icon">$</span>
+                            <span>25</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="category">
+                <div class="category-label">骨灰级</div>
+                <div class="category-icon">▼</div>
+            </div>
+            <div class="plant-grid">
+                <div class="plant-card">
+                    <div class="plant-image">
+                        <img src="qjc.png" alt="青江菜">
+                    </div>
+                    <div class="plant-info">
+                        <div class="plant-name">青江菜</div>
+                        <div class="plant-price">
+                            <span class="plant-price-icon">$</span>
+                            <span>15</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="plant-card">
+                    <div class="plant-image">
+                        <img src="dyc.png" alt="豆芽">
+                    </div>
+                    <div class="plant-info">
+                        <div class="plant-name">豆芽</div>
+                        <div class="plant-price">
+                            <span class="plant-price-icon">$</span>
+                            <span>15</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="category">
+                <div class="category-label">花圃</div>
+                <div class="category-icon">▼</div>
+            </div>
+            <div class="plant-grid">
+                <div class="plant-card">
+                    <div class="plant-image">
+                        <img src="hp2.png" alt="花圃植物">
+                    </div>
+                    <div class="plant-info">
+                        <div class="plant-name">花圃植物</div>
+                        <div class="plant-price">
+                            <span class="plant-price-icon">$</span>
+                            <span>20</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="plant-card">
+                    <div class="plant-image">
+                        <img src="hp1.png" alt="花圃植物">
+                    </div>
+                    <div class="plant-info">
+                        <div class="plant-name">花圃植物</div>
+                        <div class="plant-price">
+                            <span class="plant-price-icon">$</span>
+                            <span>20</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 聊天页面 -->
+    <div id="chat-page" class="page inactive">
+        <div class="status-bar">
+            <div class="time">9:41</div>
+        </div>
+        
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="chat-avatar">🤖</div>
+                <div class="chat-name">HI</div>
+            </div>
+            
+            <div class="chat-messages">
+                <div class="message sent">
+                    <div class="message-bubble">哈喽，小A</div>
+                </div>
+                
+                <div class="message received">
+                    <div class="message-bubble">你好啊，请问有什么问题需要我解答的吗？</div>
+                </div>
+                
+                <div class="voice-message">
+                    <span class="voice-icon">▶️</span>
+                    <div class="voice-bar">
+                        <div class="voice-bar-item"></div>
+                        <div class="voice-bar-item"></div>
+                        <div class="voice-bar-item"></div>
+                        <div class="voice-bar-item"></div>
+                        <div class="voice-bar-item"></div>
+                        <div class="voice-bar-item"></div>
+                        <div class="voice-bar-item"></div>
+                        <div class="voice-bar-item"></div>
+                    </div>
+                    <span class="voice-duration">00:15</span>
+                </div>
+                
+                <div class="message received">
+                    <div class="message-bubble">种植小番茄需准备肥沃、排水良好的土壤，确保pH值在6.0至7.0。选择合适品种，提前育苗，待幼苗稳定后移栽。确保每天至少6-8小时日照，合理规划株行距(30-60cm和60-90cm)。保持土壤湿润但不过水，定期施用平衡肥料，设立支架支撑植株，注意病虫害防治，适时修剪和摘心以促进健康生长与产量。</div>
+                </div>
+                
+                <div class="message sent">
+                    <div class="message-bubble">谢谢你，小A</div>
+                </div>
+            </div>
+            
+            <div class="chat-input">
+                <span class="chat-input-icon">🎤</span>
+                <input type="text" placeholder="输入消息">
+                <div class="chat-input-actions">
+                    <div class="chat-input-action">📷</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 浇水打卡页面 -->
+    <div id="watering-page" class="page inactive">
+        <div class="status-bar">
+            <div class="time">9:41</div>
+        </div>
+        
+        <div class="back-button" onclick="goBack()">
+            <span>←</span>
+        </div>
+        
+        <div class="page-title">浇水打卡</div>
+        
+        <div class="calendar-container">
+            <div class="calendar-weekdays">
+                <div>S</div>
+                <div>M</div>
+                <div>T</div>
+                <div>W</div>
+                <div>T</div>
+                <div>F</div>
+                <div>S</div>
+            </div>
+            <div class="calendar-days">
+                <div class="calendar-day">1</div>
+                <div class="calendar-day">2</div>
+                <div class="calendar-day">3</div>
+                <div class="calendar-day">4</div>
+                <div class="calendar-day">5</div>
+                <div class="calendar-day">6</div>
+                <div class="calendar-day">7</div>
+                <div class="calendar-day">8</div>
+                <div class="calendar-day">9</div>
+                <div class="calendar-day">10</div>
+                <div class="calendar-day">11</div>
+                <div class="calendar-day">12</div>
+                <div class="calendar-day active">13</div>
+                <div class="calendar-day">14</div>
+                <div class="calendar-day">15</div>
+                <div class="calendar-day">16</div>
+                <div class="calendar-day">17</div>
+                <div class="calendar-day has-record">18</div>
+                <div class="calendar-day">19</div>
+                <div class="calendar-day">20</div>
+                <div class="calendar-day">21</div>
+                <div class="calendar-day has-record">22</div>
+                <div class="calendar-day has-record">23</div>
+                <div class="calendar-day">24</div>
+                <div class="calendar-day has-record">25</div>
+                <div class="calendar-day">26</div>
+                <div class="calendar-day">27</div>
+                <div class="calendar-day">28</div>
+                <div class="calendar-day">29</div>
+                <div class="calendar-day">30</div>
+                <div class="calendar-day">31</div>
+            </div>
+        </div>
+        
+        <div class="check-in-info">
+            <div class="progress-circle">
+                <svg viewBox="0 0 100 100">
+                    <circle class="progress-bg" cx="50" cy="50" r="45" />
+                    <circle class="progress-fill" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="70" />
+                </svg>
+                <div class="progress-text">
+                    <div class="progress-label">打卡值</div>
+                    <div class="progress-value">760</div>
+                </div>
+            </div>
+            <div class="exp-info">
+                <div class="exp-label">exp</div>
+                <div class="exp-value">UP↑</div>
+                <div class="daily-reward">
+                    <span class="daily-reward-icon">$</span>
+                    <span>10/DAY</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="video-section">
+            <div class="video-title">拍摄视频，完成今日打卡</div>
+            <div class="video-container">
+                <div class="video-placeholder">
+                    <div class="play-icon">▶️</div>
+                </div>
+            </div>
+            <button class="shoot-button">
+                <span class="shoot-button-icon">📷</span>
+                拍摄
+            </button>
+        </div>
+    </div>
+    
+    <!-- 种植日记页面 -->
+    <div id="diary-page" class="page inactive">
+        <div class="status-bar">
+            <div class="time">9:41</div>
+        </div>
+        
+        <div class="back-button" onclick="goBack()">
+            <span>←</span>
+        </div>
+        
+        <div class="page-title">种植日记</div>
+        
+        <div class="diary-container">
+            <div class="diary-header">
+                <div class="diary-title">2024年12月14日，星期六</div>
+            </div>
+            
+            <div class="diary-content">
+                <div class="diary-date">2024年12月14日，星期六</div>
+                <div class="diary-text">
+                    大部分种子直径在1cm左右，干瘪凹陷，呈米黄色，少数为深褐色。
+                </div>
+                <div class="diary-text">
+                    浸种24小时，期间换水一次，捞出饱满的种子，均匀铺在湿毛巾上，摊开，覆盖一层湿纸巾，温度保持在25℃左右，放置于室内10-15度背光处。种子表面湿润，表面有光泽。
+                </div>
+                <div class="diary-image">
+                    <img src="jc.png" alt="种子图片">
+                </div>
+                
+                <div class="diary-navigation">
+                    <button class="diary-nav-button left">←</button>
+                    <button class="diary-day">Day 0</button>
+                    <button class="diary-nav-button right">→</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 花圃详情页面 -->
+    <div id="garden-detail-page" class="page inactive">
+        <div class="status-bar">
+            <div class="time">9:41</div>
+        </div>
+        
+        <div class="back-button" onclick="goBack()">
+            <span>←</span>
+        </div>
+        
+        <div class="page-title">花圃</div>
+        
+        <div class="garden-detail">
+            <div class="garden-detail-header">
+                <div class="garden-detail-title">矮种小番茄</div>
+                <div class="garden-detail-image">
+                    <img src="xfq.png" alt="小番茄">
+                </div>
+            </div>
+            
+            <div class="plant-info-list">
+                <div class="plant-info-item">
+                    <div class="plant-info-label">年龄：</div>
+                    <div class="plant-info-value">201天</div>
+                </div>
+                
+                <div class="plant-info-item">
+                    <div class="plant-info-label">生长数据记录：</div>
+                    <div class="plant-info-value"></div>
+                </div>
+                
+                <div class="plant-info-item">
+                    <div class="plant-info-label">株高：</div>
+                    <div class="plant-info-value">31cm</div>
+                </div>
+                
+                <div class="plant-info-item">
+                    <div class="plant-info-label">结实：</div>
+                    <div class="plant-info-value">第160天</div>
+                </div>
+                
+                <div class="plant-info-item">
+                    <div class="plant-info-label">花期：</div>
+                    <div class="plant-info-value">25天</div>
+                </div>
+            </div>
+            
+            <div class="garden-detail-actions">
+                <button class="garden-detail-button">AI助手</button>
+                <button class="garden-detail-button">种植教程</button>
+            </div>
+            
+            <div class="garden-detail-navigation">
+                <div class="garden-detail-nav-button">←</div>
+                <div class="garden-detail-nav-button">→</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 种子袋页面 -->
+    <div id="seed-bag-page" class="page inactive">
+        <div class="status-bar">
+            <div class="time">9:41</div>
+        </div>
+        
+        <div class="back-button" onclick="goBack()">
+            <span>←</span>
+        </div>
+        
+        <div class="seed-bag">
+            <div class="seed-bag-header">
+                <div class="seed-bag-title">种子袋</div>
+                <div class="seed-bag-logo">种子</div>
+            </div>
+            
+            <div class="seed-grid">
+                <div class="seed-card">
+                    <div class="seed-icon">🌱</div>
+                    <div class="seed-name">韭菜</div>
+                    <div class="seed-price">
+                        <span class="seed-price-icon">$</span>
+                        <span>25</span>
+                    </div>
+                    <button class="plant-seed-button">种植</button>
+                </div>
+                
+                <div class="seed-card">
+                    <div class="seed-icon">🌱</div>
+                    <div class="seed-name">生菜</div>
+                    <div class="seed-price">
+                        <span class="seed-price-icon">$</span>
+                        <span>20</span>
+                    </div>
+                    <button class="plant-seed-button">种植</button>
+                </div>
+                
+                <div class="seed-card">
+                    <div class="seed-icon">🌱</div>
+                    <div class="seed-name">青江菜</div>
+                    <div class="seed-price">
+                        <span class="seed-price-icon">$</span>
+                        <span>15</span>
+                    </div>
+                    <button class="plant-seed-button">种植</button>
+                </div>
+                
+                <div class="seed-card">
+                    <div class="seed-icon">🌱</div>
+                    <div class="seed-name">小番茄</div>
+                    <div class="seed-price">
+                        <span class="seed-price-icon">$</span>
+                        <span>30</span>
+                    </div>
+                    <button class="plant-seed-button">种植</button>
+                </div>
+                
+                <div class="seed-card">
+                    <div class="seed-icon">🌱</div>
+                    <div class="seed-name">小向日葵</div>
+                    <div class="seed-price">
+                        <span class="seed-price-icon">$</span>
+                        <span>25</span>
+                    </div>
+                    <button class="plant-seed-button">种植</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 底部导航栏 -->
+    <div class="bottom-nav">
+        <div class="nav-item" data-page="home-page">
+            <div class="nav-icon">🏠</div>
+            <div class="nav-label">首页</div>
+        </div>
+        <div class="nav-item" data-page="plant-page">
+            <div class="nav-icon">🛒</div>
+            <div class="nav-label">商店</div>
+        </div>
+        <div class="nav-item" data-page="community-page">
+            <div class="nav-icon">📊</div>
+            <div class="nav-label">统计</div>
+        </div>
+        <div class="nav-item" data-page="chat-page">
+            <div class="nav-icon">🤖</div>
+            <div class="nav-label">AI</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 更新时间
+            function updateTime() {
+                const now = new Date();
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                document.querySelector('.time').textContent = `${hours}:${minutes}`;
+            }
+            
+            updateTime();
+            setInterval(updateTime, 60000);
+            
+            // 页面切换
+            const navItems = document.querySelectorAll('.nav-item');
+            const pages = document.querySelectorAll('.page');
+            
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const targetPageId = this.getAttribute('data-page');
+                    
+                    // 隐藏所有页面
+                    pages.forEach(page => {
+                        page.classList.remove('active');
+                        page.classList.add('inactive');
+                    });
+                    
+                    // 显示目标页面
+                    const targetPage = document.getElementById(targetPageId);
+                    if (targetPage) {
+                        targetPage.classList.remove('inactive');
+                        targetPage.classList.add('active');
+                    }
+                });
+            });
+            
+            // 日历交互
+            const calendarDays = document.querySelectorAll('.calendar-day');
+            calendarDays.forEach(day => {
+                day.addEventListener('click', function() {
+                    calendarDays.forEach(d => d.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+            
+            // 返回按钮
+            function goBack() {
+                // 隐藏当前页面
+                const activePage = document.querySelector('.page.active');
+                activePage.classList.remove('active');
+                activePage.classList.add('inactive');
+                
+                // 显示主页
+                document.getElementById('home-page').classList.remove('inactive');
+                document.getElementById('home-page').classList.add('active');
+            }
+            
+            // 主页日历点击事件
+            const homeCalendarDates = document.querySelectorAll('#home-page .calendar-date');
+            homeCalendarDates.forEach(date => {
+                date.addEventListener('click', function() {
+                    // 隐藏主页
+                    document.getElementById('home-page').classList.remove('active');
+                    document.getElementById('home-page').classList.add('inactive');
+                    
+                    // 显示浇水打卡页面
+                    document.getElementById('watering-page').classList.remove('inactive');
+                    document.getElementById('watering-page').classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
